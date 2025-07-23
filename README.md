@@ -148,7 +148,33 @@ Coming soon.
 
 # 4. Visualizations
 
-Coming soon
+The final pipeline output is a simple Streamlit dashboard to help answer key analytical questions, such as:
+
+- Which age group does have the highest transaction volume?
+- Which age group is most likely to experience fraudulent transactions?
+- On which day of the week does fraud most frequently occur?
+- Are night-time transactions more likely to be fraudulent?
+- Which U.S. states report the hightest number of fraud cases?
+
+All this information can help the business decide on how to adapt the algorithm to label transactions as fraud.
+
+Below are example screenshots of the Streamlit dashboard visualizing answers to these questions:
+
+> [!NOTE]  
+> The following screenshots were taken after uploading data for a single day. Final visualizations based on the full dataset may show different patterns and results.
+
+
+![The entry of the Streamlit dashboard.](images/dashboard-fraud-analysis.png)
+_Entry point of the Streamlit dashboard._
+
+![Total transaction volume by age group.](images/fraud-by-age-group.png)
+_Total transaction volume by age group._
+
+![Total transaction volume by merchant location (state).](images/fraud-by-merchant-location.png)
+_Total transaction volume by merchant location (state)._
+
+![A map of the United States with fraud cases highlighted.](images/fraud-merchant-location-map.png)
+_A map of the states with fraud cases highlighted._
 
 # 5. How to Run
 
