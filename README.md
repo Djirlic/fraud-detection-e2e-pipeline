@@ -1,4 +1,4 @@
-# AWS Batch Processing Pipeline for Credit Card Transactions
+# AWS & Snowflake Batch Processing Pipeline for Credit Card Transactions
 
 # Introduction & Goals
 
