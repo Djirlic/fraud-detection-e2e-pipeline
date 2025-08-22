@@ -46,6 +46,8 @@ The pipeline starts with a publicly available credit card fraud detection datase
 
 To simulate ongoing ingestion (e.g., daily or weekly loads), I created a Python CLI that splits large CSVs into one file per day based on a timestamp column.
 
+![A diagram of the the step from Kaggle data, to a split up dataset.](images/split-dataset.png)
+
 Additionally, I incorporated US geo-location data from the [U.S. Census Bureau](https://www.census.gov/programs-surveys/geography/data.html) to enrich transactions with state-level context.
 
 👉 https://github.com/Djirlic/raw-to-daily-splitter
@@ -55,6 +57,8 @@ Additionally, I incorporated US geo-location data from the [U.S. Census Bureau](
 The ingestion into AWS S3 (Simple Storage Service) can be done manually. However, I preferred a more automated approach. There are several options on how to do that with AWS. But as you can see in the Python script I've created, uploading files with presigned URLs without the need to provide any credentials to the script itself and being capable of handling up to 5TB of data makes it a great alternative to API Gateway (max object size: 10MB).
 
 👉 https://github.com/Djirlic/s3-file-uploader-cli
+
+![A diagram of the the step where the data gets validated and moved to a second (refined) bucket.](images/schema-validation.png)
 
 #### First schema validation
 
@@ -70,6 +74,8 @@ In both cases logs will be made to get information about potential failures but 
 
 👉 https://github.com/Djirlic/raw-transactions-handler
 
+![A diagram of the the step where the data is uploaded to an AWS S3 bucket via a presigned URL.](images/upload-via-presigned-url.png)
+
 #### Upload to Snowflake via Snowpipe
 
 To further process the data, Snowpipe will automatically detect new files in the success directory of the refined S3 bucket. The new data will then be loaded into Snowflake.
@@ -78,11 +84,21 @@ Snowflake serves as the central data warehouse, receiving data via Snowpipe and 
 
 The detection uses the recommended path by Snowflake of using AWS EventBridge, AWS SNS (Simple Notification Service), and AWS SQS (Simple Queue Service). Additionally, I decided to protect the messages sent through a SNS topic via encryption of the KMS (Key Management Service).
 
+![A diagram of the the step where the data moves from the refined AWS S3 bucket Snowflake via Snowpipe. File uploads are recognized by EventBridge and sent to as a message of an SNS topic through a SQS queue.](images/s3-to-snowflake.png)
+
 ### Orchestration
 
-Once the data gets updated in Snowflake, Airflow will run a DAG (Directed Acyclic Graph) to inform dbt of the changes. Airflow runs on the Astronomer platform.
+This orchestration with Airflow currently has a single DAG (Directed Acyclic Graph) with three tasks for orchestration. Every 10 minutes, Airflow checks a Snowflake Stream (append-only) on the credit card transactions source table for new entries.
 
-👉 Coming soon
+If the Sensor detects new data, the second task gets started which will trigger a dbt cloud job ([see Transformation](#transformation)).
+
+Once the second task completes successfully, a final task will advance the Stream. Without this step, the Stream would continue reporting the same unconsumed rows, and Airflow would re-run dbt unnecessarily. 
+
+Airflow runs on the Astronomer platform.
+
+👉 https://github.com/Djirlic/airflow-credit-card-transactions
+
+![A diagram of the the steps where the data gets transformed from the bronze layer to silver and gold layers with dbt. This step is orchestrated with Airflow.](images/airflow-dbt-medallion.png)
 
 ### Transformation
 
@@ -106,7 +122,9 @@ An example of the visualization can be seen below. For more examples look into [
 
 ![A simple visualization via a bar chart with Streamlit of the states with the most transactions](images/steamlit-simple.png)
 
-👉 Coming soon
+👉 https://github.com/Djirlic/cc-transactions-streamlit
+
+![A diagram of the the step where the data gets consumed and visualized by Streamlit from the gold layer tables.](images/gold-to-streamlit.png)
 
 # 2. Production grade engineering
 
@@ -130,21 +148,17 @@ Throughout the pipeline, I applied production-grade engineering practices to ens
 - [s3-file-uploader-cli](https://github.com/Djirlic/s3-file-uploader-cli): A Python CLI tool to upload files to an AWS S3 bucket using a presigned URL. Designed for data engineering workflows, automation pipelines, and robust CLI-based file ingestion.
 - [Raw Transaction Handler](https://github.com/Djirlic/raw-transactions-handler): A serverless data ingestion and transformation pipeline using AWS Lambda, designed to validate, transform, and route raw financial transaction data to a refined data bucket. The pipeline also maintains structured logs for successful and failed processing attempts.
 
-## Snowflake / Storage
-
-Coming soon.
-
 ## dbt / Transformation
 
 - [Creditcard Transaction Transformer](https://github.com/Djirlic/cc-transactions-transformer): Transforms raw data from a connected warehouse (in my case Snowflake) into bronze, silver, and gold layers (medallion architecture).
 
 ## Airflow / Orchestration
 
-Coming soon.
+- [Orchestration with a DAG in Airflow](https://github.com/Djirlic/airflow-credit-card-transactions).
 
 ## Streamlit / Visualization
 
-Coming soon.
+- [Streamlit Visualization](https://github.com/Djirlic/cc-transactions-streamlit).
 
 # 4. Visualizations
 
@@ -222,11 +236,12 @@ A special thanks to [Andreas Kretz](https://github.com/team-data-science) and [A
 
 I'm a freelance data engineer based in Germany, experienced in building modern data platforms with:
 
-- PostgreSQL
-- AWS
-- Azure
-- Snowflake
+- Databricks
 - Microsoft Fabric
+- Azure
+- Clickhouse
+- AWS
+- Snowflake
 - dbt
 - Airflow
 - Streamlit
